@@ -1,0 +1,625 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Planche d'animations — Demo ← → Code</title>
+<meta name="description" content="Planche d'animations - demo left, code right - pédagogique" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Rubik:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#07121a;
+    --panel:#0b1720;
+    --accent:#7c5cff;
+    --accent2:#27d3b2;
+    --muted:#97a6b3;
+    --glass: rgba(255,255,255,0.03);
+    --radius:12px;
+    --max:1200px;
+    --gap:18px;
+    --ui-contrast: #e6f3f2;
+  }
+
+  /* Reset */
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0}
+  body{
+    font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial;
+    background:
+      radial-gradient(800px 400px at 10% 10%, rgba(124,92,255,0.04), transparent 6%),
+      linear-gradient(180deg,var(--bg), #041018 60%);
+    color:var(--ui-contrast);
+    -webkit-font-smoothing:antialiased;
+    line-height:1.45;
+    padding:28px;
+  }
+
+  /* Outer container: two-column layout (demos | code) */
+  .container{
+    max-width:var(--max);
+    margin:0 auto;
+    display:grid;
+    grid-template-columns: 1fr 460px;
+    gap:24px;
+    align-items:start;
+  }
+
+  header{
+    grid-column:1 / -1;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:12px;
+    margin-bottom:8px;
+  }
+  header .title{
+    font-family:Rubik,Inter;
+    font-size:20px;
+    font-weight:600;
+    letter-spacing:0.2px;
+  }
+  header .sub{ color:var(--muted); font-size:13px }
+
+  /* Left: demos grid */
+  .demos{
+    display:grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap:14px;
+  }
+  .demos .col-full{
+    grid-column: 1/-1;
+  }
+
+  .demo-card{
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    border-radius:var(--radius);
+    padding:14px;
+    border:1px solid rgba(255,255,255,0.03);
+    transition:transform .18s, box-shadow .18s;
+    min-height:120px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    cursor:pointer;
+  }
+  .demo-card:hover{ transform:translateY(-6px); box-shadow:0 28px 60px rgba(0,0,0,0.6); }
+  .demo-card.selected{ outline:3px solid rgba(124,92,255,0.12); box-shadow:0 28px 72px rgba(37,20,80,0.24) }
+  .demo-title{ font-weight:700; font-size:14px }
+  .demo-desc{ color:var(--muted); font-size:13px }
+
+  /* small utility for demo footers */
+  .demo-foot{ margin-top:auto; display:flex; gap:10px; align-items:center }
+
+  /* Right: code viewer */
+  .code-pane{
+    position:relative;
+    border-radius:var(--radius);
+    overflow:hidden;
+    border:1px solid rgba(255,255,255,0.03);
+    background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.008));
+    display:flex;
+    flex-direction:column;
+    min-height:280px;
+  }
+  /* sticky on larger viewports */
+  @media(min-width:980px){
+    .code-pane{ position:sticky; top:28px; max-height:calc(100vh - 56px) }
+    .code-body{ overflow:auto }
+  }
+
+  .code-header{
+    padding:12px 14px;
+    border-bottom:1px solid rgba(255,255,255,0.02);
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+  }
+  .code-header .title{ font-weight:700; font-size:14px }
+  .code-actions{ display:flex; gap:8px; align-items:center }
+
+  .btn{
+    background:transparent;
+    border:1px solid rgba(255,255,255,0.06);
+    padding:8px 10px;
+    border-radius:10px;
+    color:var(--muted);
+    cursor:pointer;
+    font-weight:700;
+    font-size:13px;
+  }
+  .btn.primary{
+    background:linear-gradient(90deg,var(--accent),var(--accent2));
+    color:#041018;
+    border:0;
+    box-shadow: 0 8px 22px rgba(124,92,255,0.12);
+  }
+  .btn.icon{ padding:8px; width:38px; height:38px; display:inline-grid; place-items:center }
+
+  .code-body{
+    padding:12px;
+    background:#07121a;
+    color:#d6f4ef;
+    font-size:13px;
+    line-height:1.45;
+  }
+  pre{ margin:0; white-space:pre-wrap; word-break:break-word; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", monospace; font-size:13px }
+  code{ display:block }
+
+  .copy-feedback{
+    position:absolute; right:12px; top:12px;
+    background:var(--accent); color:#041018; padding:6px 10px; border-radius:999px; font-weight:700;
+    opacity:0; transform:translateY(-6px); transition:all .28s;
+  }
+
+  /* Demo specific visuals */
+  .btn.core{
+    display:inline-flex; align-items:center; gap:10px; padding:10px 14px; border-radius:12px;
+    background:linear-gradient(180deg,#0f1725,#0b141b);
+    color:#fff; border:1px solid rgba(255,255,255,0.04); cursor:pointer; font-weight:700;
+    transition:transform .12s, box-shadow .12s; box-shadow:0 8px 24px rgba(0,0,0,0.6); position:relative; overflow:visible;
+  }
+  .btn.core:hover{ transform:translateY(-3px) }
+
+  /* glitch button */
+  .glitch-btn{
+    position:relative; display:inline-block; padding:10px 18px; border-radius:10px;
+    background:linear-gradient(180deg,#0f1725,#0b141b);
+    color:transparent; border:1px solid rgba(255,255,255,0.04);
+    font-weight:800; min-width:120px; cursor:pointer; overflow:visible;
+  }
+  .glitch-btn .sr{ position:absolute!important; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0; }
+  .glitch-btn::before, .glitch-btn::after{
+    content: attr(data-text);
+    position:absolute; left:0; top:0; right:0; bottom:0;
+    display:flex; align-items:center; justify-content:center; font-weight:800; pointer-events:none;
+  }
+  .glitch-btn::before{ color: var(--accent); mix-blend-mode:screen; clip: rect(0, 9999px, 0, 0); animation: gl1 1s infinite; z-index:3; }
+  .glitch-btn::after{ color: var(--accent2); mix-blend-mode:screen; clip: rect(0, 9999px, 0, 0); animation: gl2 1.1s infinite; z-index:4; }
+  .glitch-btn .label{ position:relative; z-index:5; color:var(--ui-contrast); display:flex;align-items:center;justify-content:center; pointer-events:none; }
+
+  @keyframes gl1{
+    0%{clip:rect(0,9999px,0,0);transform:translate(0,0)}
+    10%{clip:rect(6px,9999px,30px,0);transform:translate(-2px,-1px)}
+    20%{clip:rect(30px,9999px,60px,0);transform:translate(2px,1px)}
+    30%{clip:rect(10px,9999px,30px,0);transform:translate(-1px,0)}
+    40%{clip:rect(0,9999px,0,0);transform:translate(0,0)}
+    100%{clip:rect(0,9999px,0,0);transform:translate(0,0)}
+  }
+  @keyframes gl2{
+    0%{clip:rect(0,9999px,0,0);transform:translate(0,0)}
+    12%{clip:rect(20px,9999px,50px,0);transform:translate(1px,2px)}
+    28%{clip:rect(5px,9999px,20px,0);transform:translate(-2px,-1px)}
+    44%{clip:rect(40px,9999px,90px,0);transform:translate(1px,0)}
+    60%{clip:rect(0,9999px,0,0);transform:translate(0,0)}
+    100%{clip:rect(0,9999px,0,0);transform:translate(0,0)}
+  }
+  .glitch-btn::before, .glitch-btn::after{ animation-play-state:paused; opacity:0; }
+  .glitch-btn:hover::before, .glitch-btn:hover::after,
+  .glitch-btn:focus::before, .glitch-btn:focus::after {
+    animation-play-state:running; opacity:0.95;
+  }
+
+  /* pulse loader */
+  @keyframes pl{0%{transform:scale(.6);opacity:.4}50%{transform:scale(1);opacity:1}100%{transform:scale(.6);opacity:.4}}
+  .loader-dot{ width:12px;height:12px;border-radius:999px;background:var(--accent); display:inline-block; animation:pl 1s infinite ease-in-out }
+  .loader-dot.d2{ animation-delay:.12s } .loader-dot.d3{ animation-delay:.24s }
+
+  /* image small parallax wrapper */
+  .img-mini{ overflow:hidden; border-radius:10px }
+
+  /* focus */
+  :focus{ outline: 3px solid rgba(124,92,255,0.12); outline-offset:2px; border-radius:10px }
+
+  /* Responsive adjustments */
+  @media(max-width:1100px){
+    .container{ grid-template-columns: 1fr 380px; gap:18px }
+  }
+  @media(max-width:880px){
+    .container{ grid-template-columns: 1fr; }
+    .code-pane{ order: 2; width:100%; }
+    .demos{ grid-template-columns: 1fr; }
+    header{ flex-direction:column; align-items:flex-start; gap:8px }
+    .code-header{ padding:10px }
+    .copy-feedback{ right:10px; top:10px }
+  }
+
+  /* small helpers */
+  .muted{ color:var(--muted) }
+  .row{ display:flex; gap:10px; align-items:center; flex-wrap:wrap }
+</style>
+</head>
+<body>
+
+<div class="container" role="main">
+  <header>
+    <div>
+      <div class="title">Animation Playground — Demo → Code</div>
+      <div class="sub muted">Clique sur une démo à gauche pour voir le code à droite. Conçu pour apprendre.</div>
+    </div>
+    <div class="row">
+      <button class="btn" id="toggleAll" aria-label="Sélection suivante">Sélect. suivant</button>
+      <button class="btn primary" id="copyAll" aria-label="Copier tout le code">Copier code</button>
+    </div>
+  </header>
+
+  <!-- LEFT column: demos -->
+  <section class="demos" aria-label="Démos">
+
+    <article class="demo-card" data-id="btnHover" tabindex="0">
+      <div class="demo-title">Glitch Button</div>
+      <div class="demo-desc">Bouton "glitch" : calques texte décalés (clip animation). Accessible.</div>
+      <div class="demo-foot" style="margin-top:auto">
+        <button class="glitch-btn" data-text="Clique moi" aria-label="Clique moi">
+          <span class="sr">Clique moi</span>
+          <span class="label" aria-hidden="true">Clique moi</span>
+        </button>
+      </div>
+    </article>
+
+    <article class="demo-card" data-id="pulse" tabindex="0">
+      <div class="demo-title">Loader pulse</div>
+      <div class="demo-desc">Trois points qui pulsent en boucle (CSS).</div>
+      <div class="demo-foot" style="margin-top:auto">
+        <div style="display:flex;gap:8px;align-items:center">
+          <span class="loader-dot"></span>
+          <span class="loader-dot d2"></span>
+          <span class="loader-dot d3"></span>
+        </div>
+      </div>
+    </article>
+
+    <article class="demo-card" data-id="typing" tabindex="0">
+      <div class="demo-title">Typing</div>
+      <div class="demo-desc">Saisie simulée, boucle de phrases (JS).</div>
+      <div class="demo-foot" style="margin-top:auto"><span id="miniType" style="font-family:monospace;color:var(--accent)">Chargement…</span></div>
+    </article>
+
+    <article class="demo-card tilt-card" data-id="tilt" tabindex="0">
+      <div class="demo-title">Carte tilt</div>
+      <div class="demo-desc">Carte qui se soulève au hover pour donner de la profondeur.</div>
+      <div class="demo-foot" style="margin-top:auto;display:flex;gap:12px;align-items:center">
+        <div style="width:52px;height:52px;border-radius:10px;background:linear-gradient(90deg,var(--accent),var(--accent2))"></div>
+        <div><strong>Carte</strong><div class="muted" style="font-size:13px">Survole-moi</div></div>
+      </div>
+    </article>
+
+    <article class="demo-card" data-id="progress" tabindex="0">
+      <div class="demo-title">Progress bar</div>
+      <div class="demo-desc">Barre animée; démarrer/stopper (JS).</div>
+      <div class="demo-foot" style="margin-top:auto">
+        <div style="width:100%;background:rgba(255,255,255,0.03);height:10px;border-radius:999px;overflow:hidden">
+          <i id="miniProg" style="display:block;height:100%;width:40%;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width 0.8s"></i>
+        </div>
+      </div>
+    </article>
+
+    <article class="demo-card" data-id="confetti" tabindex="0">
+      <div class="demo-title">Confetti (canvas)</div>
+      <div class="demo-desc">Mini confettis en canvas (JS).</div>
+      <div class="demo-foot" style="margin-top:auto">
+        <button class="btn" id="miniConfetti">🎉 Lancer</button>
+      </div>
+    </article>
+
+    <article class="demo-card" data-id="parallax" tabindex="0">
+      <div class="demo-title">Parallax image</div>
+      <div class="demo-desc">Image qui bouge légèrement au mouvement de souris.</div>
+      <div class="demo-foot img-mini" style="margin-top:auto">
+        <img src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=800&auto=format&fit=crop" alt="Vagues" style="width:120%;transform:translateX(-10%);transition:transform .24s">
+      </div>
+    </article>
+
+  </section>
+
+  <!-- RIGHT column: code viewer -->
+  <aside class="code-pane" aria-label="Visualiseur de code">
+    <div class="code-header">
+      <div class="title">Code — <span id="codeTitle">Glitch Button</span></div>
+      <div class="code-actions">
+        <button class="btn icon" id="prev" title="Précédent">◀</button>
+        <button class="btn icon" id="next" title="Suivant">▶</button>
+        <button class="btn primary" id="copyBtn" title="Copier le code visible">Copier</button>
+      </div>
+    </div>
+
+    <div class="copy-feedback" id="copyFeedback">Copié ✅</div>
+
+    <div class="code-body" tabindex="0">
+      <pre><code id="codeArea"></code></pre>
+    </div>
+  </aside>
+</div>
+
+<script>
+/* ========== Data: demo code snippets (strings) ========== */
+const snippets = {
+  btnHover: {
+    title: 'Glitch Button',
+    code:
+`<!-- HTML -->
+<button class="glitch-btn" data-text="Clique moi" aria-label="Clique moi">
+  <span class="sr">Clique moi</span>
+  <span class="label" aria-hidden="true">Clique moi</span>
+</button>
+
+/* CSS (essentiel) */
+.glitch-btn{
+  position:relative; padding:10px 18px; border-radius:10px; background:linear-gradient(180deg,#0f1725,#0b141b);
+  color:transparent; border:1px solid rgba(255,255,255,0.04); font-weight:800;
+}
+.glitch-btn .label{ position:relative; z-index:5; color:#e6f3f2; display:flex;align-items:center;justify-content:center; pointer-events:none; }
+.glitch-btn::before,
+.glitch-btn::after{
+  content: attr(data-text);
+  position:absolute; left:0; top:0; right:0; bottom:0; display:flex;align-items:center;justify-content:center; font-weight:800; pointer-events:none;
+}
+.glitch-btn::before{ color: var(--accent); mix-blend-mode:screen; clip:rect(0,9999px,0,0); animation:gl1 1s infinite; z-index:3; }
+.glitch-btn::after{ color: var(--accent2); mix-blend-mode:screen; clip:rect(0,9999px,0,0); animation:gl2 1.1s infinite; z-index:4; }
+/* pause animation by default, animate on hover/focus */
+.glitch-btn::before, .glitch-btn::after{ animation-play-state:paused; opacity:0; }
+.glitch-btn:hover::before, .glitch-btn:hover::after,
+.glitch-btn:focus::before, .glitch-btn:focus::after {
+  animation-play-state:running; opacity:0.95;
+}
+/* keyframes (slices) */
+@keyframes gl1{ /* ... frames ... */ }
+@keyframes gl2{ /* ... frames ... */ }`
+  },
+
+  pulse: {
+    title: 'Loader pulse',
+    code:
+`/* HTML */
+<div class="loader-pulse"><span></span><span></span><span></span></div>
+
+/* CSS */
+.loader-pulse{display:flex;gap:8px;align-items:center}
+.loader-pulse span{width:12px;height:12px;background:var(--accent);border-radius:999px;display:inline-block;animation:pl 1s infinite ease-in-out}
+.loader-pulse span:nth-child(2){animation-delay:.12s}
+.loader-pulse span:nth-child(3){animation-delay:.24s}
+@keyframes pl{0%{transform:scale(.6);opacity:.4}50%{transform:scale(1);opacity:1}100%{transform:scale(.6);opacity:.4}}`
+  },
+
+  typing: {
+    title: 'Typing (JS)',
+    code:
+`/* HTML */
+<span id="typed"></span>
+
+/* JS */
+const phrases = ["Bonjour.", "Je suis étudiant.", "J'apprends le web."];
+let i = 0, j = 0, typing = true;
+function typeLoop(){
+  const el = document.getElementById('typed');
+  const full = phrases[i];
+  if(typing){
+    el.textContent = full.slice(0, j+1);
+    j++;
+    if(j >= full.length){ typing = false; setTimeout(typeLoop,900); return; }
+    setTimeout(typeLoop, 60);
+  } else {
+    el.textContent = full.slice(0, j-1);
+    j--;
+    if(j <= 0){ typing = true; i = (i+1)%phrases.length; setTimeout(typeLoop,400); return; }
+    setTimeout(typeLoop, 24);
+  }
+}
+typeLoop();`
+  },
+
+  tilt: {
+    title: 'Tilt card',
+    code:
+`/* HTML */
+<div class="card tilt-card">Contenu</div>
+
+/* CSS */
+.tilt-card{transition:transform .28s, box-shadow .28s}
+.tilt-card:hover{transform:translateY(-8px) rotateX(6deg);box-shadow:0 26px 60px rgba(0,0,0,0.6)}`
+  },
+
+  progress: {
+    title: 'Progress bar',
+    code:
+`/* HTML */
+<div class="progress"><i id="bar"></i></div>
+<button id="start">Start</button>
+
+/* CSS */
+.progress{background:rgba(255,255,255,0.03);height:12px;border-radius:999px;overflow:hidden}
+.progress > i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .8s}
+
+/* JS */
+let v=0; const bar = document.getElementById('bar');
+const t = setInterval(()=>{ v+=10; bar.style.width = v + '%'; if(v>=100) clearInterval(t); }, 300);`
+  },
+
+  confetti: {
+    title: 'Confetti canvas',
+    code:
+`/* HTML */
+<div class="confetti-wrap"><canvas id="conf"></canvas><button id="go">🎉</button></div>
+
+/* JS (mini) */
+function spawnConfetti(canvas){
+  const ctx = canvas.getContext('2d');
+  const particles=[];
+  function p(){ return {x:canvas.width/2+Math.random()*40-20, y:canvas.height/2, vx:(Math.random()-0.5)*6, vy:- (3+Math.random()*6), size:4+Math.random()*8, color:'#7c5cff'} }
+  for(let i=0;i<40;i++) particles.push(p());
+  function draw(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    particles.forEach((o,i)=>{ o.vy+=0.18; o.x+=o.vx; o.y+=o.vy; ctx.fillStyle=o.color; ctx.fillRect(o.x,o.y,o.size,o.size*0.6); });
+  }
+  setInterval(draw, 16);
+}`
+  },
+
+  parallax: {
+    title: 'Parallax image',
+    code:
+`/* HTML */
+<div id="box"><img src="..." /></div>
+
+/* JS */
+const box = document.getElementById('box');
+box.addEventListener('mousemove', e => {
+  const rect = box.getBoundingClientRect();
+  const dx = (e.clientX - rect.left - rect.width/2)/rect.width;
+  const dy = (e.clientY - rect.top - rect.height/2)/rect.height;
+  box.querySelector('img').style.transform = 'translate(' + (dx*6) + 'px,' + (dy*6) + 'px) scale(1.03)';
+});`
+  }
+};
+
+/* ========== UI glue ========== */
+const demoCards = Array.from(document.querySelectorAll('.demo-card'));
+const codeArea = document.getElementById('codeArea');
+const codeTitle = document.getElementById('codeTitle');
+const copyBtn = document.getElementById('copyBtn');
+const copyFeedback = document.getElementById('copyFeedback');
+
+let currentIndex = 0;
+function selectByIndex(i){
+  if(i < 0) i = demoCards.length -1;
+  if(i >= demoCards.length) i = 0;
+  currentIndex = i;
+  demoCards.forEach((c, idx) => c.classList.toggle('selected', idx === i));
+  const id = demoCards[i].dataset.id;
+  const snip = snippets[id];
+  codeTitle.textContent = snip.title;
+  codeArea.textContent = snip.code;
+  // ensure scroll top
+  const body = document.querySelector('.code-body');
+  if(body) body.scrollTop = 0;
+}
+demoCards.forEach((c, idx) => {
+  c.addEventListener('click', ()=> selectByIndex(idx));
+  c.addEventListener('keydown', (e)=> { if(e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectByIndex(idx); } });
+});
+
+// nav buttons
+document.getElementById('next').addEventListener('click', ()=> selectByIndex(currentIndex+1));
+document.getElementById('prev').addEventListener('click', ()=> selectByIndex(currentIndex-1));
+document.getElementById('toggleAll').addEventListener('click', ()=> selectByIndex(currentIndex+1));
+
+// copy visible code
+copyBtn.addEventListener('click', async ()=> {
+  try {
+    await navigator.clipboard.writeText(codeArea.textContent);
+    copyFeedback.style.opacity = 1;
+    copyFeedback.style.transform = 'translateY(0)';
+    setTimeout(()=> { copyFeedback.style.opacity = 0; copyFeedback.style.transform = 'translateY(-6px)'; }, 1400);
+  } catch(e){
+    alert('Copie impossible ici — sélectionne manuellement.');
+  }
+});
+
+// copy all code
+document.getElementById('copyAll').addEventListener('click', async ()=> {
+  const all = demoCards.map(c => snippets[c.dataset.id].code).join('\n\n/* --- */\n\n');
+  try { await navigator.clipboard.writeText(all); alert('Tout le code copié dans le presse-papiers ✅'); } catch(e){ alert('Impossible de copier.'); }
+});
+
+/* mini interactions */
+// typing demo
+(function miniTyping(){
+  const target = document.getElementById('miniType');
+  const phrases = ["Salut !", "Bienvenue.", "Code & play."];
+  let i=0,j=0,typing=true;
+  function loop(){
+    const full = phrases[i];
+    if(typing){
+      target.textContent = full.slice(0,j+1);
+      j++;
+      if(j>=full.length){ typing=false; setTimeout(loop,800); return; }
+      setTimeout(loop, 60 + Math.random()*40);
+    } else {
+      target.textContent = full.slice(0,j-1);
+      j--;
+      if(j<=0){ typing=true; i=(i+1)%phrases.length; setTimeout(loop,350); return; }
+      setTimeout(loop, 24 + Math.random()*18);
+    }
+  }
+  loop();
+})();
+
+// progress mini
+(function miniProg(){
+  const bar = document.getElementById('miniProg');
+  let val = 40;
+  setInterval(()=> {
+    val += (Math.random()*20 - 8);
+    val = Math.max(0, Math.min(100, val));
+    bar.style.width = val + '%';
+  }, 900);
+})();
+
+// confetti mini (canvas per card)
+(function miniConfetti(){
+  const card = document.querySelector('.demo-card[data-id="confetti"]');
+  if(!card) return;
+  const canvas = document.createElement('canvas');
+  canvas.style.position='absolute'; canvas.style.inset='0'; canvas.style.pointerEvents='none';
+  card.style.position = 'relative';
+  card.appendChild(canvas);
+  const ctx = canvas.getContext('2d');
+  function resize(){ canvas.width = card.clientWidth; canvas.height = card.clientHeight; }
+  resize(); window.addEventListener('resize', resize);
+  function spawn(n=35){
+    const parts = [];
+    for(let i=0;i<n;i++) parts.push({
+      x: card.clientWidth/2 + (Math.random()-0.5)*40,
+      y: card.clientHeight/2,
+      vx: (Math.random()-0.5)*6,
+      vy: - (3 + Math.random()*6),
+      s: 4+Math.random()*8,
+      c: ['#7c5cff','#27d3b2','#ffd36b','#ff6b8a'][Math.floor(Math.random()*4)],
+      rot: Math.random()*360
+    });
+    function frame(){
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      parts.forEach((p, i)=>{
+        p.vy += 0.18; p.vx *= 0.99;
+        p.x += p.vx; p.y += p.vy; p.rot += p.vx*2;
+        ctx.save();
+        ctx.translate(p.x,p.y); ctx.rotate(p.rot*Math.PI/180);
+        ctx.fillStyle = p.c; ctx.fillRect(-p.s/2,-p.s/2,p.s,p.s*0.6);
+        ctx.restore();
+      });
+      if(parts.some(p=>p.y < canvas.height + 30)) requestAnimationFrame(frame);
+    }
+    frame();
+  }
+  document.getElementById('miniConfetti').addEventListener('click', ()=> spawn(45));
+})();
+
+// parallax
+document.querySelectorAll('.demo-card[data-id="parallax"]').forEach(card=>{
+  const img = card.querySelector('img');
+  if(!img) return;
+  card.addEventListener('mousemove', e=>{
+    const rect = card.getBoundingClientRect();
+    const dx = (e.clientX - rect.left - rect.width/2)/rect.width;
+    const dy = (e.clientY - rect.top - rect.height/2)/rect.height;
+    img.style.transform = `translate(${dx*8}px, ${dy*8}px) scale(1.03)`;
+  });
+  card.addEventListener('mouseleave', ()=> img.style.transform = 'translateX(-10%)');
+});
+
+// keyboard navigation
+document.addEventListener('keydown', (e)=>{
+  if(e.key === 'ArrowRight') selectByIndex(currentIndex+1);
+  if(e.key === 'ArrowLeft') selectByIndex(currentIndex-1);
+});
+
+// initial
+selectByIndex(0);
+
+/* pulse keyframes injection (keeps CSS compact) */
+const style = document.createElement('style');
+style.textContent = '@keyframes pl{0%{transform:scale(.6);opacity:.4}50%{transform:scale(1);opacity:1}100%{transform:scale(.6);opacity:.4}}';
+document.head.appendChild(style);
+</script>
+</body>
+</html>
